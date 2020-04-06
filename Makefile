@@ -12,11 +12,14 @@ SHELL := /bin/bash
 PKG   := github.com/operator-framework/operator-lifecycle-manager
 MOD_FLAGS := $(shell (go version | grep -q -E "1\.1[1-9]") && echo -mod=vendor)
 CMDS  := $(shell go list $(MOD_FLAGS) ./cmd/...)
+# TODO: remove error
+# $(error   CMDS is $(CMDS))
 TCMDS := $(shell go list $(MOD_FLAGS) ./test/e2e/...)
 MOCKGEN := ./scripts/update_mockgen.sh
 CODEGEN := ./scripts/update_codegen.sh
 IMAGE_REPO := quay.io/operator-framework/olm
 IMAGE_TAG ?= "dev"
+OLM_VERSION := 0.14.1
 SPECIFIC_UNIT_TEST := $(if $(TEST),-run $(TEST),)
 LOCAL_NAMESPACE := "olm"
 export GO111MODULE=on
@@ -57,6 +60,9 @@ coverage-html: cover.out
 build: build_cmd=build
 build: clean $(CMDS)
 
+build-ppc64le: build_cmd=build
+build-ppc64le: clean $(CMDS)
+
 test-bare: BUILD_TAGS=-tags=bare
 test-bare: clean $(TCMDS)
 
@@ -70,13 +76,25 @@ build-linux: build_cmd=build
 build-linux: arch_flags=GOOS=linux GOARCH=386
 build-linux: clean $(CMDS)
 
+build-linux-ppc64le: build_cmd=build
+build-linux-ppc64le: arch_flags=GOOS=linux GOARCH=ppc64le
+build-linux-ppc64le: clean $(CMDS)
+
+build-wait: arch_flags=GOOS=linux GOARCH=386
 build-wait: clean bin/wait
 
+build-wait-ppc64le: arch_flags=GOOS=linux GOARCH=ppc64le
+build-wait-ppc64le: clean bin/wait
+
+
 bin/wait:
-	GOOS=linux GOARCH=386 go build $(MOD_FLAGS) -o $@ $(PKG)/test/e2e/wait
+	$(arch_flags) go build $(MOD_FLAGS) -o $@ $(PKG)/test/e2e/wait
 
 build-util-linux: arch_flags=GOOS=linux GOARCH=386
 build-util-linux: build-util
+
+build-util-linux-ppc64le: arch_flags=GOOS=linux GOARCH=ppc64le
+build-util-linux-ppc64le: build-util
 
 build-util: bin/cpb
 
@@ -93,6 +111,14 @@ $(TCMDS):
 	go test -c $(BUILD_TAGS) $(MOD_FLAGS) -o bin/$(shell basename $@) $@
 
 run-local: build-linux build-wait build-util-linux
+	rm -rf build
+	. ./scripts/build_local.sh
+	mkdir -p build/resources
+	. ./scripts/package_release.sh 1.0.0 build/resources doc/install/local-values.yaml
+	. ./scripts/install_local.sh $(LOCAL_NAMESPACE) build/resources
+	rm -rf build
+
+run-local-ppc64le: build-linux-ppc64le build-wait-ppc64le build-util-linux-ppc64le
 	rm -rf build
 	. ./scripts/build_local.sh
 	mkdir -p build/resources
