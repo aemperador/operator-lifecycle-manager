@@ -36,6 +36,8 @@ COPY --from=builder /build/bin/catalog /bin/catalog
 COPY --from=builder /build/bin/package-server /bin/package-server
 COPY --from=builder /build/bin/cpb /bin/cpb
 
+# TODO: Power Docker Commands
+
 # This image doesn't need to run as root user.
 USER 1001
 

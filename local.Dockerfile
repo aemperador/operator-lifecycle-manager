@@ -7,3 +7,5 @@ COPY cpb /bin/cpb
 EXPOSE 8080
 EXPOSE 5443
 CMD ["/bin/olm"]
+
+# Power Docker commands

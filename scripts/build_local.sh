@@ -13,6 +13,8 @@ if [[ "$(kubectl config current-context)" =~ ^kubernetes-admin@kubernetes$ ]]; t
   kubeadm reset # shut down if currently running
   kubeadm init
   kubectl config use-context kubernetes-admin@kubernetes
+  # TODO: figure out how to set this environment variable, it's required for kubelet
+  # export KUBECONFIG=/etc/kubernetes/kubelet.conf
 fi
 
 # if [ -z "$NO_MINIKUBE" ]; then
